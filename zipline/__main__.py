@@ -218,7 +218,7 @@ DEFAULT_BUNDLE = 'quantopian-quandl'
 @click.option(
     '--trading-calendar',
     metavar='TRADING-CALENDAR',
-    default='XNYS',
+    default='SHSZ',
     help="The calendar you want to use e.g. XLON. XNYS is the default."
 )
 @click.option(

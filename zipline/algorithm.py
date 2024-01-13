@@ -134,7 +134,7 @@ from zipline.sources.benchmark_source import BenchmarkSource
 from zipline.zipline_warnings import ZiplineDeprecationWarning
 
 
-log = logbook.Logger("ZiplineLog")
+log = logbook.Logger("TradingAlgorithm")
 
 # For creating and storing pipeline instances
 AttachedPipeline = namedtuple('AttachedPipeline', 'pipe chunks eager')
@@ -521,8 +521,12 @@ class TradingAlgorithm(object):
         before_trading_start_minutes = days_at_time(
             self.sim_params.sessions,
             time(8, 45),
-            "US/Eastern"
+            "UTC"
         )
+
+        log.debug("sim_params.sessions->{sessions}".format(sessions=self.sim_params.sessions))
+        log.debug("before_trading_start_minutes->{before_trading_start_minutes}".format(before_trading_start_minutes=before_trading_start_minutes))
+
 
         return MinuteSimulationClock(
             self.sim_params.sessions,

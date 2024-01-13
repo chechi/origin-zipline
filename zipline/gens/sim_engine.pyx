@@ -16,8 +16,11 @@
 cimport numpy as np
 import numpy as np
 import pandas as pd
+import logbook
 cimport cython
 from cpython cimport bool
+
+log = logbook.Logger("sim_engine")
 
 cdef np.int64_t _nanos_in_minute = 60000000000
 NANOS_IN_MINUTE = _nanos_in_minute
@@ -74,12 +77,23 @@ cdef class MinuteSimulationClock:
         minute_emission = self.minute_emission
 
         for idx, session_nano in enumerate(self.sessions_nanos):
+
+            log.debug("{idx}:{time}".format(idx=idx, time=pd.Timestamp(session_nano, tz='UTC')))
+            log.debug("time:{time}->event:{event}".format(time=pd.Timestamp(session_nano, tz='UTC'), event="SESSION_START"))
+
             yield pd.Timestamp(session_nano, tz='UTC'), SESSION_START
 
             bts_minute = pd.Timestamp(self.bts_nanos[idx], tz='UTC')
+
+            log.debug("bts_minute:{bts_minute}".format(bts_minute=pd.Timestamp(self.bts_nanos[idx], tz='UTC')))
+
             regular_minutes = self.minutes_by_session[session_nano]
 
+            log.debug("regular_minutes:{regular_minutes}".format(regular_minutes=regular_minutes))
+
             if bts_minute > regular_minutes[-1]:
+                log.debug("bts_minute > regular_minutes[-1]")
+                log.debug("bts_minute:{bts_minute}>regular_minutes[-1]:{regular_minutes}".format(bts_minute=bts_minute,regular_minutes=pd.Timestamp(regular_minutes[-1],tz='UTC')))
                 # before_trading_start is after the last close,
                 # so don't emit it
                 for minute, evt in self._get_minutes_for_list(
@@ -90,7 +104,10 @@ cdef class MinuteSimulationClock:
             else:
                 # we have to search anew every session, because there is no
                 # guarantee that any two session start on the same minute
+                log.debug("else")
+                log.debug("bts_minute:{bts_minute}".format(bts_minute=bts_minute))
                 bts_idx = regular_minutes.searchsorted(bts_minute)
+                log.debug("bts_idx:{bts_idx}".format(bts_idx))
 
                 # emit all the minutes before bts_minute
                 for minute, evt in self._get_minutes_for_list(
@@ -98,7 +115,7 @@ cdef class MinuteSimulationClock:
                     minute_emission
                 ):
                     yield minute, evt
-
+                log.debug("minute:{minute}->event:{event}".format(minute=bts_minute, event="BEFORE_TRADING_START_BAR"))
                 yield bts_minute, BEFORE_TRADING_START_BAR
 
                 # emit all the minutes after bts_minute
@@ -108,10 +125,12 @@ cdef class MinuteSimulationClock:
                 ):
                     yield minute, evt
 
+            log.debug("event:{event}".format(event="SESSION_END"))
             yield regular_minutes[-1], SESSION_END
 
     def _get_minutes_for_list(self, minutes, minute_emission):
         for minute in minutes:
+            log.debug("minute:{minute}->event:{event}".format(minute=pd.Timestamp(minute, tz='UTC'), event="BAR"))
             yield minute, BAR
             if minute_emission:
                 yield minute, MINUTE_END
